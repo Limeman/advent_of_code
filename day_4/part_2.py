@@ -52,7 +52,7 @@ def main():
             last_number = n
             break
 
-    print("" + str(get_final_sum(boards[last_board, :, :], markers[last_board, :, :]) * last_number))
+    print("Losing boards score:\n" + str(get_final_sum(boards[last_board, :, :], markers[last_board, :, :]) * last_number))
     
 
 if __name__ == "__main__":
