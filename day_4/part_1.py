@@ -43,13 +43,11 @@ def main():
     numbers = get_numbers()
     boards = get_boards()
     markers = np.zeros(boards.shape)
-    winning_num = 0
     for n in numbers:
         matches = np.nonzero(boards == n)
         markers[matches] = 1
 
         if get_winner_axis(markers) != -1:
-            winning_num = n
             break
     axis = get_winner_axis(markers)
     pos = get_winner_pos(markers, axis)

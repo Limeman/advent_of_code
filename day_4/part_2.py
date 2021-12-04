@@ -22,8 +22,9 @@ def get_boards():
     return np.array(boards)
 
 def get_bingo_boards(markers):
-    print(np.nonzero(markers.sum(axis=1) == 5)[0])
-    np.nonzero(markers.sum(axis=2) == 5)[0]
+    x_boards = np.nonzero(markers.sum(axis=1) == 5)[0]
+    y_boards = np.nonzero(markers.sum(axis=2) == 5)[0]
+    return np.unique(np.concatenate((x_boards, y_boards)))    
 
 def get_final_sum(board, markers):
     return board[markers == 0].sum()
@@ -32,15 +33,26 @@ def main():
 
     numbers = get_numbers()
     boards = get_boards()
-    num_boards = boards.shape[0]
+    
     markers = np.zeros(boards.shape)
-    losing_num = 0
+    num_boards = boards.shape[0]
+    non_bingos = np.ones((num_boards, ), dtype=bool)
+    
+    last_board = -1
+    last_number = 0
+    
     for n in numbers:
         markers[boards == n] = 1
+        bingo_cards = get_bingo_boards(markers)
+        non_bingos[bingo_cards] = 0
+        
+        if non_bingos.sum() == 1:
+            last_board = np.nonzero(non_bingos == 1)
+        if non_bingos.sum() == 0:
+            last_number = n
+            break
 
-        get_bingo_boards(markers)
-
-
+    print("" + str(get_final_sum(boards[last_board, :, :], markers[last_board, :, :]) * last_number))
     
 
 if __name__ == "__main__":
