@@ -7,26 +7,18 @@ def get_crabs():
 def get_costs(crabs):
     furthest_crab = crabs.max()
     closest_crab = crabs.min()
-    
-    tmp = np.expand_dims(np.arange(closest_crab, furthest_crab + 1, dtype=np.longlong), axis=1)
-    dists = np.repeat(tmp, crabs.shape[0], axis=1)
 
-    crab_mat = np.repeat(np.expand_dims(crabs, axis=0), furthest_crab + 1, axis=0)
+    tmp = np.expand_dims(np.arange(closest_crab, furthest_crab + 1, dtype=np.longlong), axis=0)
+    dists = np.repeat(tmp, crabs.shape[0], axis=0)
 
-    print(crab_mat)
-    print(dists)
+    crab_mat = np.repeat(np.expand_dims(crabs, axis=1), furthest_crab + 1, axis=1)
+
     return np.abs(dists - crab_mat)
-
-
 
 def main():
     crabs = get_crabs()
     costs = get_costs(crabs)
-    print(costs.T)
-    print(costs.sum(axis=1))
-    print(np.argwhere(costs.sum(axis=1) <= 356179))
-    print("Cheapest movement:\t" + str(np.argmin(costs.sum(axis=1))))
-
+    print("Lowest fuel cost:\t" + str(np.min(costs.sum(axis=0))))
 
 if __name__ == "__main__":
     main()
