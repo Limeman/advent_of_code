@@ -24,28 +24,28 @@ def read_cave():
     return {value:key for (key, value) in mapping.items()}, adjacency_matrix
 
 def get_neighbors(adjacency, node):
-    return adjacency[node, :]
+    return np.nonzero(adjacency[node, :] == 1)[0]
 
-def dfs(adjacency, mapping, stack, visited):
-    if len(stack) == 0:
-        return 0
-    curr = stack.pop()
-    if mapping[curr] == 'end':
-        return 1
-    if mapping[curr].islower() and mapping[curr] != 'start' and mapping[curr] != 'end':
-        visited[curr] = True
+
+class path_counter:
+    def __init__(self):
+        self.count = 0
     
-    neighbors = get_neighbors(adjacency, curr)
-    for n in neighbors:
-        if visited[n] == False:
-            if n.islower() and n != 'end':
-                visited[n] = True
-            stack.append(n)
-    return dfs(adjacency, mapping, stack, visited)
+    def count_paths(self, adjacency, mapping, path):
+        neighbors = get_neighbors(adjacency, path[-1])
+        for i in range(neighbors.shape[0]):
+            if mapping[neighbors[i]].isupper() or neighbors[i] not in path:
+                if mapping[neighbors[i]] == 'end':
+                    self.count += 1
+                else:
+                    self.count_paths(adjacency, mapping, path + [neighbors[i]])
+
 def main():
     mapping, adjacency = read_cave()
-    
-    print(dfs(adjacency, mapping, [], np.zeros((len(mapping),), dtype=bool)))
+    start_pos = list(mapping.keys())[list(mapping.values()).index('start')]
+    counter = path_counter()
+    counter.count_paths(adjacency, mapping, [start_pos])
+    print(counter.count)
 
 if __name__ == "__main__":
     main()
