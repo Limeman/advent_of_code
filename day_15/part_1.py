@@ -1,5 +1,7 @@
 import sys
 import numpy as np
+from sklearn import neighbors
+from torch import ne
 
 def read_risk_map():
     risk_map = []
@@ -7,57 +9,52 @@ def read_risk_map():
         risk_map.append([int(x) for x in line if x != '\n'])
     return np.array(risk_map, dtype=int)
 
-def get_neighbors(pos, vertex_set, shape):
-    tmp_neighbors = []
-    if pos[0] + 1 < shape[0]:
-        tmp_neighbors.append([pos[0] + 1, pos[1]])
-    if pos[0] - 1 >= 0:
-        tmp_neighbors.append([pos[0] - 1, pos[1]])
-    if pos[1] + 1 < shape[1]:
-        tmp_neighbors.append([pos[0], pos[1] + 1])
-    if pos[1] - 1 >= 0:
-        tmp_neighbors.append([pos[0], pos[1] - 1])
-    
+def extract_min(queue):
+    return np.unravel_index(np.nanargmin(queue), queue.shape)
+
+def get_neighbors(pos, bounds):
+    (x, y) = pos
+    (x_max, y_max) = bounds
     neighbors = []
-    for t in tmp_neighbors:
-        if np.any(np.array(t) == vertex_set):
-            neighbors.append(t)
-    return np.array(neighbors, dtype=int)
+    for i in range(-1, 2):
+        for j in range(-1, 2):
+            if x + i >= 0 and x + i < x_max and\
+               y + j >= 0 and y + j < y_max and\
+               i != j and (i, j) != (1, -1) and (i, j) != (-1, 1):
+               neighbors.append((x + i, y + j))
+    return neighbors
+                
 
-def get_min(dist, vertex_set, verticies):
-    mins = np.argsort(dist)
-    for i in range(mins.shape[0]):
-        if np.any((verticies[mins[i]][0] == vertex_set[:, 0]) & (verticies[mins[i]][1] == vertex_set[:, 1])):
-            return mins[i]
-
-def shortest_path(risk_map):
-    shape = risk_map.shape
-    vertex_set = np.reshape(np.indices(shape), (2, shape[0] * shape[1])).T
-    verticies  = np.reshape(np.indices(shape), (2, shape[0] * shape[1])).T
-    dist       = np.full((shape[0] * shape[1],), np.iinfo(int).max, dtype=int)
-    prev       = np.full((shape[0] * shape[1],), np.nan, dtype=int)
-    dist[0] = 0
+def dijkstra(risk_map, source):
+    (x, y) = source
+    dist  = np.full(risk_map.shape, np.inf)
+    queue = np.full(risk_map.shape, np.inf)
+    prev  = np.full(risk_map.shape + (2,), -1)
     
-    count = 0
-    while vertex_set.shape[0] != 0:
-        u = get_min(dist, vertex_set, verticies)
-        pos = verticies[u, :]
-        vertex_set = vertex_set[~(pos[0] == vertex_set[:, 0]) & (pos[1] == vertex_set[:, 1])]
+    dist[x, y]  = 0
+    queue[x, y] = dist[x, y]
 
-        neighbors = get_neighbors(verticies[u], vertex_set, shape)
-        for i in range(neighbors.shape[0]):
-            tentative = dist[u] + risk_map[neighbors[i][0], neighbors[i][1]]
-            loc = (verticies[:, 0] == neighbors[i, 0]) & (verticies[:, 1] == neighbors[i, 1])
-            if tentative < dist[loc]:
-                dist[loc] = tentative
-                prev[loc] = u
-        count += 1
+    while np.isnan(queue).all() == False:
+        (x, y) = extract_min(queue)
+        queue[x, y] = np.nan
+        for n in get_neighbors((x, y), risk_map.shape):
+            (xn, yn) = n
+            tentative = dist[x, y] + risk_map[xn, yn]
+            if tentative < dist[xn, yn] and queue[xn, yn] != np.nan:
+                dist[xn, yn] = tentative
+                prev[xn, yn, 0] = x
+                prev[xn, yn, 1] = y
+                queue[xn, yn] = tentative
     return dist, prev
+
 
 
 def main():
     risk_map = read_risk_map()
-    print(shortest_path(risk_map))
+    dist, prev = dijkstra(risk_map, (0, 0))
+    print(dist)
+    print(risk_map)
+    print(int(dist[-1, -1]))
 
 if __name__ == "__main__":
     main()
