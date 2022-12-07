@@ -128,10 +128,6 @@ int main() {
     root = get_root(root);
     compute_sizes(root);
 
-    for (auto r : root->children[0]->children) {
-        std::cout << r->name << " " << r->size << std::endl;
-    }
-
     root = get_root(root);
     reset_states(root);
 

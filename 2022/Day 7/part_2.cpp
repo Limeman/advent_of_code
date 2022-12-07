@@ -116,7 +116,6 @@ int main() {
     std::getline(std::cin, curr);
     while (std::getline(std::cin, curr))
     {
-        std::cout << curr << std::endl;
         run_command(curr, root);
     }
     
