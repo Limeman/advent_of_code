@@ -1,144 +1,100 @@
 #include <iostream>
 #include <string>
 #include <vector>
-#include <stack>
+#include <utility>
 
+std::vector<std::vector<int>> read_forest() {
+    std::string curr;
+    std::vector<std::vector<int>> forest;
+    while (std::getline(std::cin, curr))
+    {
+        std::vector<int> tmp = {};
+        for (auto c : curr) {
+            tmp.push_back(int(c));
+        }
+        forest.push_back(tmp);
+    }
+    return forest;
+}
 
-struct directory
+struct steps
 {
-    directory* parent;
-    std::string name;
-    int size;
-    std::vector<directory*> children;
-    bool visited = false;
+    int shift_up;
+    int shift_down;
+    int shift_right;
+    int shift_left;
 };
 
-directory* get_root(directory* &standing) {
-    directory* walker = standing;
-    while (walker->parent != nullptr)
-    {
-        walker = walker->parent;
-    }
-    return walker;
-}
 
-void run_cd(directory* &standing, std::string &jump_to) {
-    if (jump_to == "/") {
-        standing = get_root(standing);
-    }
-    else if (jump_to == "..") {
-        standing = standing->parent;
-    }
-    else {
-        for (auto c : standing->children) {
-            if (c->name == jump_to) {
-                standing = c;
-                return;
-            }
+bool hidden_above(const std::vector<std::vector<int>> &forest, std::pair<int, int> p) {
+    int val = forest[p.first][p.second];
+    for (int i = 0; i < p.first; ++i) {
+        if (forest[i][p.second] >= val)
+        {
+            return true;
         }
     }
+    return false;
 }
 
-void run_command(const std::string &command, directory* &standing) {
-    std::string cmd = command.substr(2, 2);
-    if (cmd == "cd") {
-        std::string jump_to = command.substr(command.find("cd ") + 3);
-        run_cd(standing, jump_to);
-    }
-    else if (cmd == "ls") {
-        std::string curr;
-        while (std::getline(std::cin, curr))
+bool hidden_below(const std::vector<std::vector<int>> &forest, std::pair<int, int> p) {
+    int val = forest[p.first][p.second];
+    for (int i = p.first + 1; i < forest.size(); ++i) {
+        if (forest[i][p.second] >= val)
         {
-            if (curr[0] == '$')
+            return true;
+        }
+    }
+    return false;
+}
+
+bool hidden_left(const std::vector<std::vector<int>> &forest, std::pair<int, int> p) {
+    int val = forest[p.first][p.second];
+    for (int i = 0; i < p.second; ++i) {
+        if (forest[p.first][i] >= val)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool hidden_right(const std::vector<std::vector<int>> &forest, std::pair<int, int> p) {
+    int val = forest[p.first][p.second];
+    for (int i = p.second + 1; i < forest[0].size(); ++i) {
+        if (forest[p.first][i] >= val)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool is_hidden(const std::vector<std::vector<int>> &forest, std::pair<int, int> p) {
+    return hidden_above(forest, p) &&
+           hidden_below(forest, p) &&
+           hidden_left(forest, p)  &&
+           hidden_right(forest, p);
+}
+
+int count_visible_trees(const std::vector<std::vector<int>> &forest) {
+    int sum = 2 * (forest.size() + forest[0].size()) - 4;
+    for (size_t i = 1; i < forest.size() - 1; i++)
+    {
+        for (size_t j = 1; j < forest[0].size() - 1; j++)
+        {
+            if (!is_hidden(forest, std::make_pair(i, j)))
             {
-                run_command(curr, standing);
-            }
-            else {
-                // std::cout << curr << std::endl;
-                std::string first = curr.substr(0, curr.find(" "));
-                std::string second = curr.substr(curr.find(" ") + 1);
-
-                //std::cout << first << " " << second << std::endl;
-
-                if (first == "dir") {
-                    standing->children.push_back(new directory({standing, second, 0, {}}));
-                }
-                else {
-                    standing->size += std::stoi(first);
-                }
+                ++sum;
             }
         }
         
-    }
-    else {
-        // do nothing
-    }
-}
-
-int compute_sizes(directory* node) {
-    node->visited = true;
-    for (auto c : node->children) {
-        if (c->visited == false)
-        {
-            node->size = compute_sizes(c) + node->size;
-        }
-    }
-    return node->size;
-}
-
-void reset_states(directory* node) {
-    node->visited = false;
-    for (auto c : node->children) {
-        if (c->visited)
-        {
-            reset_states(c);
-        }  
-    }
-}
-
-int sum_of_sub100k(directory* node) {
-    node->visited = true;
-    int sum = 0;
-    for (auto c : node->children) {
-        if (c->visited == false)
-        {
-            if (c->size <= 100000)
-            {
-                sum += sum_of_sub100k(c) + c->size;
-            }
-            else {
-                sum += sum_of_sub100k(c);
-            }
-        }
     }
     return sum;
 }
 
 int main() {
-    std::string curr;
-    directory* root = new directory({nullptr, "/", 0, {}});
-    std::getline(std::cin, curr);
-    while (std::getline(std::cin, curr))
-    {
-        std::cout << curr << std::endl;
-        run_command(curr, root);
-    }
-    
-    
-    root = get_root(root);
-    compute_sizes(root);
-
-    for (auto r : root->children[0]->children) {
-        std::cout << r->name << " " << r->size << std::endl;
-    }
-
-    root = get_root(root);
-    reset_states(root);
-
-    root = get_root(root);
-    int sum = sum_of_sub100k(root);
-
-    std::cout << "The sum of sub 100k directories is " << sum << std::endl;
-
+    std::vector<std::vector<int>> forest = read_forest();
+    std::cout << "The number of visible trees is: " << count_visible_trees(forest) << std::endl;
     return 0;
 }

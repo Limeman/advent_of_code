@@ -1,138 +1,105 @@
 #include <iostream>
 #include <string>
 #include <vector>
-#include <stack>
-#include <limits>
+#include <utility>
+#include <cstdlib>
 
-struct directory
-{
-    directory* parent;
-    std::string name;
-    int size;
-    std::vector<directory*> children;
-    bool visited = false;
-};
-
-directory* get_root(directory* &standing) {
-    directory* walker = standing;
-    while (walker->parent != nullptr)
+std::vector<std::vector<int>> read_forest() {
+    std::string curr;
+    std::vector<std::vector<int>> forest;
+    while (std::getline(std::cin, curr))
     {
-        walker = walker->parent;
-    }
-    return walker;
-}
-
-void run_cd(directory* &standing, std::string &jump_to) {
-    if (jump_to == "/") {
-        standing = get_root(standing);
-    }
-    else if (jump_to == "..") {
-        standing = standing->parent;
-    }
-    else {
-        for (auto c : standing->children) {
-            if (c->name == jump_to) {
-                standing = c;
-                return;
-            }
+        std::vector<int> tmp = {};
+        for (auto c : curr) {
+            tmp.push_back(int(c));
         }
+        forest.push_back(tmp);
     }
+    return forest;
 }
 
-void run_command(const std::string &command, directory* &standing) {
-    std::string cmd = command.substr(2, 2);
-    if (cmd == "cd") {
-        std::string jump_to = command.substr(command.find("cd ") + 3);
-        run_cd(standing, jump_to);
-    }
-    else if (cmd == "ls") {
-        std::string curr;
-        while (std::getline(std::cin, curr))
+int top_score(const std::vector<std::vector<int>> &forest, std::pair<int, int> p) {
+    int val = forest[p.first][p.second];
+    int score = 1;
+    for (int i = p.first - 1; i >= 0; --i) {
+        if (forest[i][p.second] >= val)
         {
-            if (curr[0] == '$')
+            return score;
+        }
+        ++score;
+    }
+    return score - 1;
+}
+
+int bottom_score(const std::vector<std::vector<int>> &forest, std::pair<int, int> p) {
+    int val = forest[p.first][p.second];
+    int score = 1;
+    for (int i = p.first + 1; i < forest.size(); ++i) {
+        if (forest[i][p.second] >= val)
+        {
+            return score;
+        }
+        ++score;
+    }
+    return score - 1;
+}
+
+int left_score(const std::vector<std::vector<int>> &forest, std::pair<int, int> p) {
+    int val = forest[p.first][p.second];
+    int score = 1;
+    for (int i = p.second - 1; i >= 0; --i) {
+        if (forest[p.first][i] >= val)
+        {
+            return score;
+        }
+        ++score;
+    }
+    return score - 1;
+}
+
+int right_score(const std::vector<std::vector<int>> &forest, std::pair<int, int> p) {
+    int val = forest[p.first][p.second];
+    int score = 1;
+    for (int i = p.second + 1; i < forest[0].size(); ++i) {
+        if (forest[p.first][i] >= val)
+        {
+            return score;
+        }
+        ++score;
+    }
+    return score - 1;
+}
+
+int calc_score(const std::vector<std::vector<int>> &forest, std::pair<int, int> p) {
+    // std::cout << "Top: " << p.first << " " << p.second << ": " << top_score(forest, p) << std::endl;
+    // std::cout << "Bottom: " << p.first << " " << p.second << ": " << bottom_score(forest, p) << std::endl;
+    // std::cout << "left: " << p.first << " " << p.second << ": " << left_score(forest, p) << std::endl;
+    // std::cout << "Right: " << p.first << " " << p.second << ": " << right_score(forest, p) << std::endl;
+    return top_score(forest, p) * bottom_score(forest, p) * left_score(forest, p) * right_score(forest, p);
+}
+
+int get_best_tree(const std::vector<std::vector<int>> &forest) {
+    int highest_score = -1;
+
+    for (size_t i = 0; i < forest.size(); i++)
+    {
+        for (size_t j = 0; j < forest[0].size(); j++)
+        {
+            int score = calc_score(forest, std::make_pair(i, j));
+            if (score > highest_score)
             {
-                run_command(curr, standing);
+                highest_score = score;
             }
-            else {
-                // std::cout << curr << std::endl;
-                std::string first = curr.substr(0, curr.find(" "));
-                std::string second = curr.substr(curr.find(" ") + 1);
-
-                //std::cout << first << " " << second << std::endl;
-
-                if (first == "dir") {
-                    standing->children.push_back(new directory({standing, second, 0, {}}));
-                }
-                else {
-                    standing->size += std::stoi(first);
-                }
-            }
+            
         }
         
     }
-    else {
-        // do nothing
-    }
-}
-
-int compute_sizes(directory* node) {
-    node->visited = true;
-    for (auto c : node->children) {
-        if (c->visited == false)
-        {
-            node->size = compute_sizes(c) + node->size;
-        }
-    }
-    return node->size;
-}
-
-void reset_states(directory* node) {
-    node->visited = false;
-    for (auto c : node->children) {
-        if (c->visited)
-        {
-            reset_states(c);
-        }  
-    }
-}
-
-void get_dir_to_delete(directory* node, int &del_size, const int &needed_space) {
-    node->visited = true;
-    for (auto c : node->children) {
-        if (c->visited == false)
-        {
-            if (c->size < del_size && c->size >= needed_space) {
-                del_size = c->size;
-            }
-            get_dir_to_delete(c, del_size, needed_space);
-        }
-        
-    }
+    return highest_score;
 }
 
 int main() {
-    std::string curr;
-    directory* root = new directory({nullptr, "/", 0, {}});
-    std::getline(std::cin, curr);
-    while (std::getline(std::cin, curr))
-    {
-        std::cout << curr << std::endl;
-        run_command(curr, root);
-    }
-    
-    
-    root = get_root(root);
-    compute_sizes(root);
-    root = get_root(root);
-    reset_states(root);
-
-    root = get_root(root);
-    int free_space = 70000000 - root->size;
-    int needed_spae = 30000000 - free_space;
-
-    int dir_to_delete = 70000000;
-    get_dir_to_delete(root, dir_to_delete, needed_spae);
-    
-    std::cout << "I will delete: " << dir_to_delete << std::endl;
+    std::vector<std::vector<int>> forest = read_forest();
+    int best_tree = get_best_tree(forest);
+    std::cout << "The highest score is: " << best_tree << std::endl;
     return 0;
 }
