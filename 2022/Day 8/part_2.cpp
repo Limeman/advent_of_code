@@ -71,10 +71,6 @@ int right_score(const std::vector<std::vector<int>> &forest, std::pair<int, int>
 }
 
 int calc_score(const std::vector<std::vector<int>> &forest, std::pair<int, int> p) {
-    // std::cout << "Top: " << p.first << " " << p.second << ": " << top_score(forest, p) << std::endl;
-    // std::cout << "Bottom: " << p.first << " " << p.second << ": " << bottom_score(forest, p) << std::endl;
-    // std::cout << "left: " << p.first << " " << p.second << ": " << left_score(forest, p) << std::endl;
-    // std::cout << "Right: " << p.first << " " << p.second << ": " << right_score(forest, p) << std::endl;
     return top_score(forest, p) * bottom_score(forest, p) * left_score(forest, p) * right_score(forest, p);
 }
 
