@@ -1,144 +1,156 @@
 #include <iostream>
 #include <string>
 #include <vector>
-#include <stack>
+#include <math.h>
+#include <algorithm>
 
-
-struct directory
+struct cell
 {
-    directory* parent;
-    std::string name;
-    int size;
-    std::vector<directory*> children;
-    bool visited = false;
+    char value;
+    bool visited;
+    bool is_start_pos = false;
 };
 
-directory* get_root(directory* &standing) {
-    directory* walker = standing;
-    while (walker->parent != nullptr)
+
+float calc_dist(const std::pair<int, int> &a, const std::pair<int, int> &b) {
+    return sqrt(pow((a.first - b.first), 2) + pow((a.second - b.second), 2));
+}
+
+void update_map(std::vector<std::vector<cell>> &map, std::pair<int, int> &head_pos, std::pair<int, int> &tail_pos, std::pair<int, int> new_pos) {
+    
+    map[new_pos.first][new_pos.second] = {'H', map[new_pos.first][new_pos.second].visited};
+    
+
+    if (calc_dist(new_pos, tail_pos) >= sqrt(2))
     {
-        walker = walker->parent;
+        map[head_pos.first][head_pos.second].value = 'T';
+        map[head_pos.first][head_pos.second].visited = true;
+        map[tail_pos.first][tail_pos.second].value = '.';
+
+        tail_pos = head_pos;
     }
-    return walker;
+    else
+    {
+        map[head_pos.first][head_pos.second].value = '.';
+    }
+    
+    head_pos = new_pos;
+
 }
 
-void run_cd(directory* &standing, std::string &jump_to) {
-    if (jump_to == "/") {
-        standing = get_root(standing);
-    }
-    else if (jump_to == "..") {
-        standing = standing->parent;
-    }
-    else {
-        for (auto c : standing->children) {
-            if (c->name == jump_to) {
-                standing = c;
-                return;
-            }
-        }
-    }
-}
-
-void run_command(const std::string &command, directory* &standing) {
-    std::string cmd = command.substr(2, 2);
-    if (cmd == "cd") {
-        std::string jump_to = command.substr(command.find("cd ") + 3);
-        run_cd(standing, jump_to);
-    }
-    else if (cmd == "ls") {
-        std::string curr;
-        while (std::getline(std::cin, curr))
+void run_instruction(std::vector<std::vector<cell>> &map, char instruction, int steps, std::pair<int, int> &head_pos, std::pair<int, int> &tail_pos) {
+    for (int i = 0; i < steps; ++i) {
+        if (instruction == 'R')
         {
-            if (curr[0] == '$')
+            if (head_pos.second + 1 > map[0].size() - 1)
             {
-                run_command(curr, standing);
-            }
-            else {
-                // std::cout << curr << std::endl;
-                std::string first = curr.substr(0, curr.find(" "));
-                std::string second = curr.substr(curr.find(" ") + 1);
-
-                //std::cout << first << " " << second << std::endl;
-
-                if (first == "dir") {
-                    standing->children.push_back(new directory({standing, second, 0, {}}));
-                }
-                else {
-                    standing->size += std::stoi(first);
+                for (size_t i = 0; i < map.size(); i++)
+                {
+                    map[i].push_back({'.', false});
                 }
             }
+            
+            update_map(map, head_pos, tail_pos, std::make_pair(head_pos.first, head_pos.second + 1));
         }
-        
-    }
-    else {
-        // do nothing
-    }
-}
-
-int compute_sizes(directory* node) {
-    node->visited = true;
-    for (auto c : node->children) {
-        if (c->visited == false)
+        else if (instruction == 'L')
         {
-            node->size = compute_sizes(c) + node->size;
+            std::pair<int, int> new_pos;
+            if (head_pos.second - 1 < 0)
+            {
+                for (size_t i = 0; i < map.size(); i++)
+                {
+                    map[i].insert(map[i].begin(), {'.', false});
+                }
+                head_pos = std::make_pair(head_pos.first, head_pos.second + 1);
+                tail_pos = std::make_pair(tail_pos.first, tail_pos.second + 1);
+                new_pos = std::make_pair(head_pos.first, 0);
+            }
+            else
+            {
+                new_pos = std::make_pair(head_pos.first, head_pos.second - 1);
+            }
+            
+            update_map(map, head_pos, tail_pos, new_pos);
         }
-    }
-    return node->size;
-}
-
-void reset_states(directory* node) {
-    node->visited = false;
-    for (auto c : node->children) {
-        if (c->visited)
+        else if (instruction == 'U')
         {
-            reset_states(c);
-        }  
+            std::pair<int, int> new_pos;
+            if (head_pos.first - 1 < 0)
+            {
+                map.insert(map.begin(), std::vector<cell>(map[0].size(), {'.', false}));
+                new_pos = std::make_pair(0, head_pos.second);
+                head_pos = std::make_pair(head_pos.first + 1, head_pos.second);
+                tail_pos = std::make_pair(tail_pos.first + 1, tail_pos.second);
+            }
+            else
+            {
+                new_pos = std::make_pair(head_pos.first - 1, head_pos.second);
+            }
+            
+            update_map(map, head_pos, tail_pos, new_pos);
+        }
+        else
+        {
+            // 'D'
+            if (head_pos.first + 1 > map.size() - 1)
+            {
+                map.push_back(std::vector<cell>(map[0].size(), {'.', false}));
+            }
+            update_map(map, head_pos, tail_pos, std::make_pair(head_pos.first + 1, head_pos.second));
+        }
+        // for (auto e : map) {
+        //     for (auto c : e) {
+        //         std::cout << c.value << " ";
+        //     }
+        //     std::cout << "\n";
+        // }
+        // std::cout << "\n";   
     }
 }
 
-int sum_of_sub100k(directory* node) {
-    node->visited = true;
+int count_visited(const std::vector<std::vector<cell>> &m) {
     int sum = 0;
-    for (auto c : node->children) {
-        if (c->visited == false)
-        {
-            if (c->size <= 100000)
+    for (auto i : m) {
+        for (auto j : i) {
+            if (j.visited || j.is_start_pos)
             {
-                sum += sum_of_sub100k(c) + c->size;
+                ++sum;
             }
-            else {
-                sum += sum_of_sub100k(c);
-            }
+            
         }
     }
     return sum;
 }
 
 int main() {
+    std::vector<std::vector<cell>> map = std::vector(2, std::vector<cell>(2, {'.', false}));
+    map[map.size() - 1][0] = {'s', false, true};
+    
     std::string curr;
-    directory* root = new directory({nullptr, "/", 0, {}});
-    std::getline(std::cin, curr);
-    while (std::getline(std::cin, curr))
+    char instruction;
+    std::pair<int, int> head_pos = {map.size() - 1, 0}, tail_pos = {map.size() - 1, 0};
+    while (std::cin >> instruction >> curr)
     {
-        std::cout << curr << std::endl;
-        run_command(curr, root);
+        int steps = std::stoi(curr);
+
+        std::cout << instruction << " " << steps << std::endl; 
+
+        run_instruction(map, instruction, steps, head_pos, tail_pos);
     }
     
-    
-    root = get_root(root);
-    compute_sizes(root);
 
-    for (auto r : root->children[0]->children) {
-        std::cout << r->name << " " << r->size << std::endl;
+    for (auto e : map) {
+        for (auto c : e) {
+            if (c.visited) {
+                std::cout << "# ";
+            }
+            else {
+                std::cout << ". ";
+            }
+        }
+        std::cout << "\n";
     }
 
-    root = get_root(root);
-    reset_states(root);
-
-    root = get_root(root);
-    int sum = sum_of_sub100k(root);
-
-    std::cout << "The sum of sub 100k directories is " << sum << std::endl;
-
+    std::cout << "The number of positions that the tail has visited is: " << count_visited(map) << std::endl;
     return 0;
 }
