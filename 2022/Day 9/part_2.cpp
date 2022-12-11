@@ -16,37 +16,33 @@ float calc_dist(const std::pair<int, int> &a, const std::pair<int, int> &b) {
     return sqrt(pow((a.first - b.first), 2) + pow((a.second - b.second), 2));
 }
 
-void update_map(std::vector<std::vector<cell>> &map, std::pair<int, int> &head_pos, std::vector<std::pair<int, int>> &tail_pos, std::pair<int, int> new_pos) {
+void update_map(std::vector<std::vector<cell>> &map, std::vector<std::pair<int, int>> &tail, std::pair<int, int> new_pos) {
     
     map[new_pos.first][new_pos.second] = {'H', map[new_pos.first][new_pos.second].visited};
-    
-    if (calc_dist(new_pos, tail_pos[0]) >= sqrt(2))
-    {
-        map[head_pos.first][head_pos.second].value = '1';
-        map[tail_pos[0].first][tail_pos[0].second].value = '.';
 
-        tail_pos[0] = head_pos;
+    if (calc_dist(new_pos, tail[1]) >= sqrt(2))
+    {
+        for (size_t i = 1; i < 10; i++)
+        {
+            map[]
+        }
+        
     }
     else
     {
-        map[head_pos.first][head_pos.second].value = '.';
+        map[tail[0].first][tail[0].second].value = '.';
+        tail[0] = new_pos;
     }
     
-    head_pos = new_pos;
+    
 
-    for (size_t i = 1; i < 9; i++)
-    {
-        map[tail_pos[i - 1].first][tail_pos[i - 1].second].value = std::to_string(i + 1)[0];
-        tail_pos[i] = tail_pos[i - 1];
-    }
-    map[tail_pos[8].first][tail_pos[8].second].visited = true;
 }
 
-void run_instruction(std::vector<std::vector<cell>> &map, char instruction, int steps, std::pair<int, int> &head_pos, std::vector<std::pair<int, int>> &tail_pos) {
+void run_instruction(std::vector<std::vector<cell>> &map, char instruction, int steps, std::vector<std::pair<int, int>> &tail) {
     for (int i = 0; i < steps; ++i) {
         if (instruction == 'R')
         {
-            if (head_pos.second + 1 > map[0].size() - 1)
+            if (tail[0].second + 1 > map[0].size() - 1)
             {
                 for (size_t i = 0; i < map.size(); i++)
                 {
@@ -54,61 +50,59 @@ void run_instruction(std::vector<std::vector<cell>> &map, char instruction, int 
                 }
             }
             
-            update_map(map, head_pos, tail_pos, std::make_pair(head_pos.first, head_pos.second + 1));
+            update_map(map, tail, std::make_pair(tail[0].first, tail[0].second + 1));
         }
         else if (instruction == 'L')
         {
             std::pair<int, int> new_pos;
-            if (head_pos.second - 1 < 0)
+            if (tail[0].second - 1 < 0)
             {
                 for (size_t i = 0; i < map.size(); i++)
                 {
                     map[i].insert(map[i].begin(), {'.', false});
                 }
-                head_pos = std::make_pair(head_pos.first, head_pos.second + 1);
-                for (size_t i = 0; i < 9; i++)
+                for (size_t i = 0; i < 10; i++)
                 {
-                    tail_pos[i] = std::make_pair(tail_pos[i].first, tail_pos[i].second + 1);
+                    tail[i] = std::make_pair(tail[i].first, tail[i].second + 1);
                 }
                 
-                new_pos = std::make_pair(head_pos.first, 0);
+                new_pos = std::make_pair(tail[0].first, 0);
             }
             else
             {
-                new_pos = std::make_pair(head_pos.first, head_pos.second - 1);
+                new_pos = std::make_pair(tail[0].first, tail[0].second - 1);
             }
             
-            update_map(map, head_pos, tail_pos, new_pos);
+            update_map(map, tail, new_pos);
         }
         else if (instruction == 'U')
         {
             std::pair<int, int> new_pos;
-            if (head_pos.first - 1 < 0)
+            if (tail[0].first - 1 < 0)
             {
                 map.insert(map.begin(), std::vector<cell>(map[0].size(), {'.', false}));
-                new_pos = std::make_pair(0, head_pos.second);
-                head_pos = std::make_pair(head_pos.first + 1, head_pos.second);
-                for (size_t i = 0; i < 9; i++)
+                new_pos = std::make_pair(0, tail[0].second);
+                for (size_t i = 0; i < 10; i++)
                 {
-                    tail_pos[i] = std::make_pair(tail_pos[i].first + 1, tail_pos[i].second);
+                    tail[i] = std::make_pair(tail[i].first + 1, tail[i].second);
                 }
-                
+                new_pos = std::make_pair(0, tail[0].second);
             }
             else
             {
-                new_pos = std::make_pair(head_pos.first - 1, head_pos.second);
+                new_pos = std::make_pair(tail[0].first - 1, tail[0].second);
             }
             
-            update_map(map, head_pos, tail_pos, new_pos);
+            update_map(map, tail, new_pos);
         }
         else
         {
             // 'D'
-            if (head_pos.first + 1 > map.size() - 1)
+            if (tail[0].first + 1 > map.size() - 1)
             {
                 map.push_back(std::vector<cell>(map[0].size(), {'.', false}));
             }
-            update_map(map, head_pos, tail_pos, std::make_pair(head_pos.first + 1, head_pos.second));
+            update_map(map, tail, std::make_pair(tail[0].first + 1, tail[0].second));
         }
         for (auto e : map) {
             for (auto c : e) {
@@ -141,28 +135,28 @@ int main() {
     std::string curr;
     char instruction;
     std::pair<int, int> head_pos = {map.size() - 1, 0};
-    std::vector<std::pair<int, int>> tail_pos(9, std::make_pair(map.size() - 1, 0));
+    std::vector<std::pair<int, int>> tail(10, {map.size() - 1, 0});
     while (std::cin >> instruction >> curr)
     {
         int steps = std::stoi(curr);
 
         std::cout << instruction << " " << steps << std::endl; 
 
-        run_instruction(map, instruction, steps, head_pos, tail_pos);
+        run_instruction(map, instruction, steps, tail);
     }
     
 
-    // for (auto e : map) {
-    //     for (auto c : e) {
-    //         if (c.visited) {
-    //             std::cout << "# ";
-    //         }
-    //         else {
-    //             std::cout << ". ";
-    //         }
-    //     }
-    //     std::cout << "\n";
-    // }
+    for (auto e : map) {
+        for (auto c : e) {
+            if (c.visited) {
+                std::cout << "# ";
+            }
+            else {
+                std::cout << ". ";
+            }
+        }
+        std::cout << "\n";
+    }
 
     std::cout << "The number of positions that the tail has visited is: " << count_visited(map) << std::endl;
     return 0;
