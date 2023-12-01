@@ -14,7 +14,7 @@ std::pair<int, int> find_spelled_num_reverse(std::string arg)
     for (auto elem : spelled_nums)
     {
         int index = arg.find(elem);
-        if (index != std::string::npos && index < first)
+        if (index != std::string::npos && index < ret_val.first)
         {
             ret_val.first = index;
             ret_val.second = counter;
@@ -32,7 +32,7 @@ std::pair<int, int> find_spelled_num(std::string arg)
     for (auto elem : spelled_nums)
     {
         int index = arg.find(elem);
-        if (index != std::string::npos && index < first)
+        if (index != std::string::npos && index < ret_val.first)
         {
             ret_val.first = index;
             ret_val.second = counter;
@@ -40,6 +40,27 @@ std::pair<int, int> find_spelled_num(std::string arg)
         counter++;
     }
     return ret_val;
+}
+
+std::pair<int, int> comp_pairs(std::pair<int, int> a, std::pair<int, int> b)
+{
+    if (a.first < b.first)
+    {
+        return a;
+    }
+    else
+    {
+        return b;
+    }
+}
+
+int calc_num(std::pair<int, int> first_index, std::pair<int, int> first_spelled, std::pair<int, int> last_index, std::pair<int, int> last_spelled)
+{
+    std::pair<int, int> first = comp_pairs(first_index, first_spelled);
+    std::pair<int, int> last = comp_pairs(last_index, last_spelled);
+
+    std::string result = std::to_string(first.second) + std::to_string(last.second);
+    return std::stoi(result);
 }
 
 int main()
@@ -60,6 +81,8 @@ int main()
 
         std::pair<int, int> first_spelled = find_spelled_num(curr);
         std::pair<int, int> last_spelled = find_spelled_num_reverse(curr);
+
+        sum += calc_num(first_index, first_spelled, last_index, last_spelled);
     }
     std::cout << "The answer is " << sum << std::endl;
     return 0;
