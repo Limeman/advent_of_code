@@ -9,18 +9,19 @@ std::pair<int, int> find_spelled_num_reverse(std::string arg)
 {
     std::reverse(arg.begin(), arg.end());
     std::vector<std::string> spelled_nums{"eno", "owt", "eerht", "ruof", "evif", "xis", "neves", "thgie", "enin"};
-    int first = std::numeric_limits<int>::max();
+    std::pair<int, int> ret_val{std::numeric_limits<int>::max(), 1};
     int counter = 1;
     for (auto elem : spelled_nums)
     {
         int index = arg.find(elem);
         if (index != std::string::npos && index < first)
         {
-            first = index;
+            ret_val.first = index;
+            ret_val.second = counter;
         }
         counter++;
     }
-    return first;
+    return ret_val;
 }
 
 std::pair<int, int> find_spelled_num(std::string arg)
@@ -54,21 +55,11 @@ int main()
         auto last_digit = std::find_if(std::begin(rev_curr), std::end(rev_curr), [](char i)
                                        { return isdigit(i); });
 
-        int first_index = std::distance(curr.begin(), first_digit);
-        int last_index = std::distance(rev_curr.begin(), last_digit);
+        std::pair<int, int> first_index{std::distance(curr.begin(), first_digit), *first_digit - '0'};
+        std::pair<int, int> last_index{std::distance(rev_curr.begin(), last_digit), *last_digit - '0'};
 
-        int first_spelled = find_spelled_num(curr);
-        int last_spelled = find_spelled_num_reverse(curr);
-
-        if (first_spelled != std::string::npos && first_spelled < first_index)
-        {
-            first_index = first_spelled;
-        }
-
-        if (last_spelled != std::string::npos && last_spelled < last_index)
-        {
-            last_index = last_spelled;
-        }
+        std::pair<int, int> first_spelled = find_spelled_num(curr);
+        std::pair<int, int> last_spelled = find_spelled_num_reverse(curr);
     }
     std::cout << "The answer is " << sum << std::endl;
     return 0;
