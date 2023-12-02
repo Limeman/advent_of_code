@@ -1,88 +1,99 @@
 #include <iostream>
 #include <string>
 #include <algorithm>
-#include <limits>
-#include <vector>
 #include <ctype.h>
+#include <vector>
 
-std::pair<int, int> find_spelled_num_reverse(std::string arg)
+struct cube_pull
 {
-    std::reverse(arg.begin(), arg.end());
-    std::vector<std::string> spelled_nums{"eno", "owt", "eerht", "ruof", "evif", "xis", "neves", "thgie", "enin"};
-    std::pair<int, int> ret_val{std::numeric_limits<int>::max(), 1};
-    int counter = 1;
-    for (auto elem : spelled_nums)
+    int reds;
+    int greens;
+    int blues;
+};
+
+std::vector<std::string> tokenizer(std::string str, std::string delimiter)
+{
+    std::vector<std::string> ret_val;
+    std::size_t pos = 0;
+    std::string token;
+    while ((pos = str.find(delimiter)) != std::string::npos)
     {
-        int index = arg.find(elem);
-        if (index != std::string::npos && index < ret_val.first)
+        token = str.substr(0, pos);
+        ret_val.push_back(token);
+        str.erase(0, pos + delimiter.length());
+    }
+    ret_val.push_back(str);
+
+    return ret_val;
+}
+
+cube_pull count_cube_pull(std::string pull)
+{
+    cube_pull ret_val{0, 0, 0};
+    std::vector<std::string> counts = tokenizer(pull, ",");
+    for (auto elem : counts)
+    {
+        elem = elem.substr(1);
+        std::string color_count_str = elem.substr(0, elem.find(" "));
+        int color_count = std::stoi(color_count_str);
+        std::string color = elem.substr(elem.find(" ") + 1);
+        if (color == "red")
         {
-            ret_val.first = index;
-            ret_val.second = counter;
+            ret_val.reds += color_count;
         }
-        counter++;
+        else if (color == "green")
+        {
+            ret_val.greens += color_count;
+        }
+        else
+        {
+            ret_val.blues += color_count;
+        }
     }
     return ret_val;
 }
 
-std::pair<int, int> find_spelled_num(std::string arg)
+std::vector<cube_pull> parse_line(std::string line)
 {
-    std::vector<std::string> spelled_nums{"one", "two", "three", "four", "five", "six", "seven", "eight", "nine"};
-    std::pair<int, int> ret_val{std::numeric_limits<int>::max(), 1};
-    int counter = 1;
-    for (auto elem : spelled_nums)
+    std::vector<cube_pull> ret_val;
+    std::vector<std::string> pulls = tokenizer(line, ";");
+    for (auto elem : pulls)
     {
-        int index = arg.find(elem);
-        if (index != std::string::npos && index < ret_val.first)
-        {
-            ret_val.first = index;
-            ret_val.second = counter;
-        }
-        counter++;
+        cube_pull count = count_cube_pull(elem);
+        ret_val.push_back(count);
     }
     return ret_val;
-}
-
-std::pair<int, int> comp_pairs(std::pair<int, int> a, std::pair<int, int> b)
-{
-    if (a.first < b.first)
-    {
-        return a;
-    }
-    else
-    {
-        return b;
-    }
-}
-
-int calc_num(std::pair<int, int> first_index, std::pair<int, int> first_spelled, std::pair<int, int> last_index, std::pair<int, int> last_spelled)
-{
-    std::pair<int, int> first = comp_pairs(first_index, first_spelled);
-    std::pair<int, int> last = comp_pairs(last_index, last_spelled);
-
-    std::string result = std::to_string(first.second) + std::to_string(last.second);
-    return std::stoi(result);
 }
 
 int main()
 {
     std::string curr;
     int sum = 0;
+
     while (std::getline(std::cin, curr))
     {
-        auto first_digit = std::find_if(std::begin(curr), std::end(curr), [](char i)
-                                        { return isdigit(i); });
-        std::string rev_curr(curr);
-        std::reverse(rev_curr.begin(), rev_curr.end());
-        auto last_digit = std::find_if(std::begin(rev_curr), std::end(rev_curr), [](char i)
-                                       { return isdigit(i); });
+        std::string game_num_str = curr.substr(5, curr.find(":") - 5);
+        int game_num = std::stoi(game_num_str);
+        std::vector<cube_pull> game = parse_line(curr.substr(curr.find(":") + 1));
 
-        std::pair<int, int> first_index{std::distance(curr.begin(), first_digit), *first_digit - '0'};
-        std::pair<int, int> last_index{std::distance(rev_curr.begin(), last_digit), *last_digit - '0'};
+        cube_pull min_possible{-1, -1, -1};
+        for (auto elem : game)
+        {
 
-        std::pair<int, int> first_spelled = find_spelled_num(curr);
-        std::pair<int, int> last_spelled = find_spelled_num_reverse(curr);
-
-        sum += calc_num(first_index, first_spelled, last_index, last_spelled);
+            if (elem.blues > min_possible.blues)
+            {
+                min_possible.blues = elem.blues;
+            }
+            if (elem.greens > min_possible.greens)
+            {
+                min_possible.greens = elem.greens;
+            }
+            if (elem.reds > min_possible.reds)
+            {
+                min_possible.reds = elem.reds;
+            }
+        }
+        sum += min_possible.blues * min_possible.greens * min_possible.reds;
     }
     std::cout << "The answer is " << sum << std::endl;
     return 0;
