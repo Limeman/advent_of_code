@@ -13,6 +13,7 @@ struct pos
 struct number
 {
     bool is_partnumber{false};
+    bool is_used{false};
     int value;
     std::vector<pos> idxs;
 };
@@ -75,6 +76,34 @@ std::vector<number> get_numbers(std::vector<std::vector<char>> schematic)
     return ret_val;
 }
 
+int get_gear_ratio(std::vector<number> numbers, pos p)
+{
+    int ret_val = 1, num_count = 0;
+    for (int i = -1; i < 2; ++i)
+    {
+        for (int j = -1; j < 2; ++j)
+        {
+            for (int k = 0; k < numbers.size(); ++k)
+            {
+                if (std::any_of(numbers[k].idxs.begin(), numbers[k].idxs.end(), [&p, &i, &j](pos p_)
+                                { return p_.x == p.x + i && p_.y == p.y + j; }) &&
+                    !numbers[k].is_used)
+                {
+                    ret_val *= numbers[k].value;
+                    numbers[k].is_used = true;
+                    num_count++;
+                }
+            }
+        }
+    }
+    if (num_count >= 2)
+    {
+        return ret_val;
+    }
+
+    return 0;
+}
+
 int main()
 {
     std::string curr;
@@ -93,12 +122,14 @@ int main()
 
     std::vector<number> numbers = get_numbers(schematic);
 
-    for (auto elem : numbers)
+    for (int i = 0; i < schematic.size(); ++i)
     {
-        if (elem.is_partnumber)
+        for (int j = 0; j < schematic[0].size(); ++j)
         {
-            std::cout << elem.value << std::endl;
-            sum += elem.value;
+            if (schematic[i][j] == '*')
+            {
+                sum += get_gear_ratio(numbers, {i, j});
+            }
         }
     }
 
