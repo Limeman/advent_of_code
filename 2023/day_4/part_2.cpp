@@ -3,105 +3,95 @@
 #include <algorithm>
 #include <ctype.h>
 #include <vector>
+#include <cmath>
 
-struct pos
+struct game
 {
-    int x;
-    int y;
+    int card_number_;
+    int num_copies_{1};
+    int num_wins_{0};
+    int card_value_{0};
+    std::vector<int> numbers_;
+    std::vector<int> winning_numbers_;
 };
 
-struct number
+std::vector<std::string> extract_numbers(std::string str)
 {
-    bool is_partnumber{false};
-    bool is_used{false};
-    int value;
-    std::vector<pos> idxs;
-};
-
-bool is_partnumber(std::vector<std::vector<char>> schematic, pos p)
-{
-    bool ret_val{false};
-    for (int i = -1; i < 2; i++)
+    std::vector<std::string> ret_val;
+    bool number_hit{false};
+    std::string curr_num;
+    for (auto s : str)
     {
-        for (int j = -1; j < 2; j++)
+        if (!number_hit && std::isdigit(s))
         {
-            if (p.x + i >= 0 && p.x + i < schematic.size() && p.y + j >= 0 && p.y + j < schematic[0].size())
+            number_hit = true;
+        }
+
+        if (std::isdigit(s))
+        {
+            curr_num.push_back(s);
+        }
+
+        if (!std::isdigit(s) && number_hit)
+        {
+            ret_val.push_back(curr_num);
+            curr_num.clear();
+            number_hit = false;
+        }
+    }
+
+    if (!curr_num.empty())
+    {
+        ret_val.push_back(curr_num);
+    }
+
+    return ret_val;
+}
+
+game process_row(std::string row)
+{
+    game ret_val;
+    std::vector<std::string> winning_numbers_str = extract_numbers(row.substr(row.find(":") + 2, row.find(" |") - row.find(":") - 2));
+    for (auto w : winning_numbers_str)
+    {
+        ret_val.winning_numbers_.push_back(std::stoi(w));
+    }
+
+    std::vector<std::string> numbers_str = extract_numbers(row.substr(row.find("|") + 2));
+    for (auto n : numbers_str)
+    {
+        ret_val.numbers_.push_back(std::stoi(n));
+    }
+
+    std::string card_number_str = row.substr(row.find(" ") + 1, row.find(":") - row.find(" "));
+    ret_val.card_number_ = std::stoi(card_number_str);
+
+    return ret_val;
+}
+
+int get_card_value(game card)
+{
+    int ret_val{0};
+    for (auto w : card.winning_numbers_)
+    {
+        for (auto n : card.numbers_)
+        {
+            if (n == w)
             {
-                if (!isdigit(schematic[p.x + i][p.y + j]) && schematic[p.x + i][p.y + j] != '.')
+                if (ret_val == 0)
                 {
-                    ret_val = true;
+                    ret_val = 1;
                 }
+                else
+                {
+                    ret_val *= 2;
+                }
+
+                break;
             }
         }
     }
     return ret_val;
-}
-
-std::vector<number> get_numbers(std::vector<std::vector<char>> schematic)
-{
-    std::vector<number> ret_val;
-    for (int i = 0; i < schematic.size(); ++i)
-    {
-        number tmp;
-        bool number_hit{false};
-        for (int j = 0; j < schematic[0].size(); ++j)
-        {
-            pos curr_pos{i, j};
-            if (!number_hit && isdigit(schematic[i][j]))
-            {
-                number_hit = true;
-            }
-
-            if (isdigit(schematic[i][j]))
-            {
-                tmp.idxs.push_back(curr_pos);
-            }
-
-            if ((number_hit && !isdigit(schematic[i][j])) || (number_hit && j == schematic[0].size() - 1))
-            {
-                std::string s;
-                for (auto i : tmp.idxs)
-                {
-                    tmp.is_partnumber = tmp.is_partnumber | is_partnumber(schematic, i);
-                    s.push_back(schematic[i.x][i.y]);
-                }
-                tmp.value = std::stoi(s);
-                ret_val.push_back(tmp);
-
-                tmp = {};
-                number_hit = false;
-            }
-        }
-    }
-    return ret_val;
-}
-
-int get_gear_ratio(std::vector<number> numbers, pos p)
-{
-    int ret_val = 1, num_count = 0;
-    for (int i = -1; i < 2; ++i)
-    {
-        for (int j = -1; j < 2; ++j)
-        {
-            for (int k = 0; k < numbers.size(); ++k)
-            {
-                if (std::any_of(numbers[k].idxs.begin(), numbers[k].idxs.end(), [&p, &i, &j](pos p_)
-                                { return p_.x == p.x + i && p_.y == p.y + j; }) &&
-                    !numbers[k].is_used)
-                {
-                    ret_val *= numbers[k].value;
-                    numbers[k].is_used = true;
-                    num_count++;
-                }
-            }
-        }
-    }
-    if (num_count >= 2)
-    {
-        return ret_val;
-    }
-
-    return 0;
 }
 
 int main()
@@ -109,28 +99,35 @@ int main()
     std::string curr;
     int sum = 0;
 
-    std::vector<std::vector<char>> schematic;
+    std::vector<game> cards;
     while (std::getline(std::cin, curr))
     {
-        std::vector<char> tmp;
-        for (auto c : curr)
+        cards.push_back(process_row(curr));
+        cards[cards.size() - 1].card_value_ = get_card_value(cards[cards.size() - 1]);
+        if (cards[cards.size() - 1].card_value_ == 0)
         {
-            tmp.push_back(c);
+            cards[cards.size() - 1].num_wins_ = 0;
         }
-        schematic.push_back(tmp);
+        else
+        {
+            cards[cards.size() - 1].num_wins_ = log2(cards[cards.size() - 1].card_value_) + 1;
+        }
     }
 
-    std::vector<number> numbers = get_numbers(schematic);
-
-    for (int i = 0; i < schematic.size(); ++i)
+    for (auto c : cards)
     {
-        for (int j = 0; j < schematic[0].size(); ++j)
+        for (size_t j = 0; j < c.num_copies_; j++)
         {
-            if (schematic[i][j] == '*')
+            for (size_t i = 0; i < c.num_wins_; i++)
             {
-                sum += get_gear_ratio(numbers, {i, j});
+                cards[c.card_number_ + i].num_copies_ += 1;
             }
         }
+    }
+
+    for (auto c : cards)
+    {
+        sum += c.num_copies_;
     }
 
     std::cout << "The answer is " << sum << std::endl;
