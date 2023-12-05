@@ -3,133 +3,193 @@
 #include <algorithm>
 #include <ctype.h>
 #include <vector>
-#include <cmath>
+#include <limits>
 
-struct game
+struct gardening_map
 {
-    int card_number_;
-    int num_copies_{1};
-    int num_wins_{0};
-    int card_value_{0};
-    std::vector<int> numbers_;
-    std::vector<int> winning_numbers_;
+    long long destination_range_start_;
+    long long source_range_start_;
+    long long range_length_;
 };
 
-std::vector<std::string> extract_numbers(std::string str)
+struct almanac
 {
-    std::vector<std::string> ret_val;
-    bool number_hit{false};
+    std::vector<long long> seeds_;
+    std::vector<gardening_map> seed_to_soil_;
+    std::vector<gardening_map> soil_to_fertilizer_;
+    std::vector<gardening_map> fertilizer_to_water_;
+    std::vector<gardening_map> water_to_light_;
+    std::vector<gardening_map> light_to_temperature_;
+    std::vector<gardening_map> temperature_to_humidity_;
+    std::vector<gardening_map> humidity_to_location_;
+};
+
+std::vector<long long> extract_numbers(std::string str)
+{
+    std::vector<long long> ret_val;
     std::string curr_num;
-    for (auto s : str)
+    bool hit_number{false};
+    for (auto c : str)
     {
-        if (!number_hit && std::isdigit(s))
+        if (!hit_number && isdigit(c))
         {
-            number_hit = true;
+            hit_number = true;
         }
 
-        if (std::isdigit(s))
+        if (isdigit(c))
         {
-            curr_num.push_back(s);
+            curr_num += c;
         }
 
-        if (!std::isdigit(s) && number_hit)
+        if (hit_number && !isdigit(c))
         {
-            ret_val.push_back(curr_num);
+            ret_val.push_back(std::stoll(curr_num));
             curr_num.clear();
-            number_hit = false;
+            hit_number = false;
         }
     }
 
     if (!curr_num.empty())
     {
-        ret_val.push_back(curr_num);
+        ret_val.push_back(std::stoi(curr_num));
     }
-
     return ret_val;
 }
 
-game process_row(std::string row)
+std::vector<gardening_map> read_gardening_maps()
 {
-    game ret_val;
-    std::vector<std::string> winning_numbers_str = extract_numbers(row.substr(row.find(":") + 2, row.find(" |") - row.find(":") - 2));
-    for (auto w : winning_numbers_str)
+    std::vector<gardening_map> ret_val;
+    std::string curr;
+    while (std::getline(std::cin, curr) && curr != "")
     {
-        ret_val.winning_numbers_.push_back(std::stoi(w));
+        gardening_map tmp;
+        std::vector<long long> numbers = extract_numbers(curr);
+        tmp.destination_range_start_ = numbers[0];
+        tmp.source_range_start_ = numbers[1];
+        tmp.range_length_ = numbers[2];
+        ret_val.push_back(tmp);
     }
-
-    std::vector<std::string> numbers_str = extract_numbers(row.substr(row.find("|") + 2));
-    for (auto n : numbers_str)
-    {
-        ret_val.numbers_.push_back(std::stoi(n));
-    }
-
-    std::string card_number_str = row.substr(row.find(" ") + 1, row.find(":") - row.find(" "));
-    ret_val.card_number_ = std::stoi(card_number_str);
-
     return ret_val;
 }
 
-int get_card_value(game card)
+// std::map<long long, long long> get_mapping(std::vector<gardening_map> arg)
+// {
+//     std::map<long long, long long> ret_val;
+//     for (auto g : arg)
+//     {
+//         for (int i = 0; i < g.range_length_; i++)
+//         {
+//             ret_val.insert({g.source_range_start_ + i, g.destination_range_start_ + i});
+//         }
+//     }
+//     return ret_val;
+// }
+
+almanac read_almanac()
 {
-    int ret_val{0};
-    for (auto w : card.winning_numbers_)
+    almanac ret_val;
+    std::string curr;
+    while (std::getline(std::cin, curr))
     {
-        for (auto n : card.numbers_)
+        if (curr.rfind("seeds:", 0) == 0)
         {
-            if (n == w)
-            {
-                if (ret_val == 0)
-                {
-                    ret_val = 1;
-                }
-                else
-                {
-                    ret_val *= 2;
-                }
+            ret_val.seeds_ = extract_numbers(curr.substr(curr.find(":")));
+        }
 
-                break;
-            }
+        if (curr.rfind("seed-to-soil", 0) == 0)
+        {
+            ret_val.seed_to_soil_ = read_gardening_maps();
+        }
+
+        if (curr.rfind("soil-to-fertilizer", 0) == 0)
+        {
+            ret_val.soil_to_fertilizer_ = read_gardening_maps();
+        }
+
+        if (curr.rfind("fertilizer-to-water", 0) == 0)
+        {
+            ret_val.fertilizer_to_water_ = read_gardening_maps();
+        }
+
+        if (curr.rfind("water-to-light", 0) == 0)
+        {
+            ret_val.water_to_light_ = read_gardening_maps();
+        }
+
+        if (curr.rfind("light-to-temperature", 0) == 0)
+        {
+            ret_val.light_to_temperature_ = read_gardening_maps();
+        }
+
+        if (curr.rfind("temperature-to-humidity", 0) == 0)
+        {
+            ret_val.temperature_to_humidity_ = read_gardening_maps();
+        }
+
+        if (curr.rfind("humidity-to-location", 0) == 0)
+        {
+            ret_val.humidity_to_location_ = read_gardening_maps();
         }
     }
     return ret_val;
+}
+
+long long process_mapping(std::vector<gardening_map> arg, long long val)
+{
+    for (auto elem : arg)
+    {
+        if (val >= elem.source_range_start_ && val < elem.source_range_start_ + elem.range_length_)
+        {
+            long long diff = val - elem.source_range_start_;
+            val = elem.destination_range_start_ + diff;
+            break;
+        }
+    }
+    return val;
+}
+
+long long find_closest_location(almanac arg)
+{
+    long long closest_location = std::numeric_limits<long long>::max();
+    std::vector<long long> seeds;
+    long long prev = arg.seeds_[0];
+    for (size_t i = 1; i < arg.seeds_.size(); i++)
+    {
+        if (i % 2 == 0)
+        {
+            prev = arg.seeds_[i];
+        }
+        else
+        {
+            for (size_t j = 0; j < arg.seeds_[i]; j++)
+            {
+                seeds.push_back(prev + j);
+            }
+        }
+    }
+
+    for (auto s : seeds)
+    {
+        long long curr = s;
+        curr = process_mapping(arg.seed_to_soil_, curr);
+        curr = process_mapping(arg.soil_to_fertilizer_, curr);
+        curr = process_mapping(arg.fertilizer_to_water_, curr);
+        curr = process_mapping(arg.water_to_light_, curr);
+        curr = process_mapping(arg.light_to_temperature_, curr);
+        curr = process_mapping(arg.temperature_to_humidity_, curr);
+        curr = process_mapping(arg.humidity_to_location_, curr);
+        if (curr < closest_location)
+        {
+            closest_location = curr;
+        }
+    }
+    return closest_location;
 }
 
 int main()
 {
-    std::string curr;
-    int sum = 0;
-
-    std::vector<game> cards;
-    while (std::getline(std::cin, curr))
-    {
-        cards.push_back(process_row(curr));
-        cards[cards.size() - 1].card_value_ = get_card_value(cards[cards.size() - 1]);
-        if (cards[cards.size() - 1].card_value_ == 0)
-        {
-            cards[cards.size() - 1].num_wins_ = 0;
-        }
-        else
-        {
-            cards[cards.size() - 1].num_wins_ = log2(cards[cards.size() - 1].card_value_) + 1;
-        }
-    }
-
-    for (auto c : cards)
-    {
-        for (size_t j = 0; j < c.num_copies_; j++)
-        {
-            for (size_t i = 0; i < c.num_wins_; i++)
-            {
-                cards[c.card_number_ + i].num_copies_ += 1;
-            }
-        }
-    }
-
-    for (auto c : cards)
-    {
-        sum += c.num_copies_;
-    }
-
-    std::cout << "The answer is " << sum << std::endl;
+    almanac almanac_ = read_almanac();
+    long long answer = find_closest_location(almanac_);
+    std::cout << "The answer is " << answer << std::endl;
     return 0;
 }
