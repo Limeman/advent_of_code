@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <ctype.h>
 #include <vector>
-#include <map>
+#include <limits>
 
 struct gardening_map
 {
@@ -22,8 +22,6 @@ struct almanac
     std::vector<gardening_map> light_to_temperature_;
     std::vector<gardening_map> temperature_to_humidity_;
     std::vector<gardening_map> humidity_to_location_;
-
-    std::vector<std::map<long long, long long>> global_map_;
 };
 
 std::vector<long long> extract_numbers(std::string str)
@@ -74,18 +72,18 @@ std::vector<gardening_map> read_gardening_maps()
     return ret_val;
 }
 
-std::map<long long, long long> get_mapping(std::vector<gardening_map> arg)
-{
-    std::map<long long, long long> ret_val;
-    for (auto g : arg)
-    {
-        for (int i = 0; i < g.range_length_; i++)
-        {
-            ret_val.insert({g.source_range_start_ + i, g.destination_range_start_ + i});
-        }
-    }
-    return ret_val;
-}
+// std::map<long long, long long> get_mapping(std::vector<gardening_map> arg)
+// {
+//     std::map<long long, long long> ret_val;
+//     for (auto g : arg)
+//     {
+//         for (int i = 0; i < g.range_length_; i++)
+//         {
+//             ret_val.insert({g.source_range_start_ + i, g.destination_range_start_ + i});
+//         }
+//     }
+//     return ret_val;
+// }
 
 almanac read_almanac()
 {
@@ -101,61 +99,68 @@ almanac read_almanac()
         if (curr.rfind("seed-to-soil", 0) == 0)
         {
             ret_val.seed_to_soil_ = read_gardening_maps();
-            ret_val.global_map_.push_back(get_mapping(ret_val.seed_to_soil_));
         }
 
         if (curr.rfind("soil-to-fertilizer", 0) == 0)
         {
             ret_val.soil_to_fertilizer_ = read_gardening_maps();
-            ret_val.global_map_.push_back(get_mapping(ret_val.soil_to_fertilizer_));
         }
 
         if (curr.rfind("fertilizer-to-water", 0) == 0)
         {
             ret_val.fertilizer_to_water_ = read_gardening_maps();
-            ret_val.global_map_.push_back(get_mapping(ret_val.fertilizer_to_water_));
         }
 
         if (curr.rfind("water-to-light", 0) == 0)
         {
             ret_val.water_to_light_ = read_gardening_maps();
-            ret_val.global_map_.push_back(get_mapping(ret_val.water_to_light_));
         }
 
         if (curr.rfind("light-to-temperature", 0) == 0)
         {
             ret_val.light_to_temperature_ = read_gardening_maps();
-            ret_val.global_map_.push_back(get_mapping(ret_val.light_to_temperature_));
         }
 
         if (curr.rfind("temperature-to-humidity", 0) == 0)
         {
             ret_val.temperature_to_humidity_ = read_gardening_maps();
-            ret_val.global_map_.push_back(get_mapping(ret_val.temperature_to_humidity_));
         }
 
         if (curr.rfind("humidity-to-location", 0) == 0)
         {
             ret_val.humidity_to_location_ = read_gardening_maps();
-            ret_val.global_map_.push_back(get_mapping(ret_val.humidity_to_location_));
         }
     }
     return ret_val;
 }
 
+long long process_mapping(std::vector<gardening_map> arg, long long val)
+{
+    for (auto elem : arg)
+    {
+        if (val >= elem.source_range_start_ && val < elem.source_range_start_ + elem.range_length_)
+        {
+            long long diff = val - elem.source_range_start_;
+            val = elem.destination_range_start_ + diff;
+            break;
+        }
+    }
+    return val;
+}
+
 long long find_closest_location(almanac arg)
 {
-    long long closest_location = 0xFFFFFF;
+    long long closest_location = std::numeric_limits<long long>::max();
     for (auto s : arg.seeds_)
     {
         long long curr = s;
-        for (auto g : arg.global_map_)
-        {
-            if (g.find(curr) != g.end())
-            {
-                curr = g[curr];
-            }
-        }
+        curr = process_mapping(arg.seed_to_soil_, curr);
+        curr = process_mapping(arg.soil_to_fertilizer_, curr);
+        curr = process_mapping(arg.fertilizer_to_water_, curr);
+        curr = process_mapping(arg.water_to_light_, curr);
+        curr = process_mapping(arg.light_to_temperature_, curr);
+        curr = process_mapping(arg.temperature_to_humidity_, curr);
+        curr = process_mapping(arg.humidity_to_location_, curr);
         if (curr < closest_location)
         {
             closest_location = curr;
@@ -167,6 +172,7 @@ long long find_closest_location(almanac arg)
 int main()
 {
     almanac almanac_ = read_almanac();
-    std::cout << "The answer is " << find_closest_location(almanac_) << std::endl;
+    long long answer = find_closest_location(almanac_);
+    std::cout << "The answer is " << answer << std::endl;
     return 0;
 }
