@@ -151,36 +151,29 @@ long long process_mapping(std::vector<gardening_map> arg, long long val)
 long long find_closest_location(almanac arg)
 {
     long long closest_location = std::numeric_limits<long long>::max();
-    std::vector<long long> seeds;
-    long long prev = arg.seeds_[0];
-    for (size_t i = 1; i < arg.seeds_.size(); i++)
+
+    for (int i = 0; i < arg.seeds_.size(); i++)
     {
         if (i % 2 == 0)
         {
-            prev = arg.seeds_[i];
-        }
-        else
-        {
-            for (size_t j = 0; j < arg.seeds_[i]; j++)
+            for (long long j = arg.seeds_[i]; j < arg.seeds_[i] + arg.seeds_[i + 1]; ++j)
             {
-                seeds.push_back(prev + j);
+                if (process_mapping(arg.seed_to_soil_, j) != j)
+                {
+                    long long curr = j;
+                    curr = process_mapping(arg.seed_to_soil_, curr);
+                    curr = process_mapping(arg.soil_to_fertilizer_, curr);
+                    curr = process_mapping(arg.fertilizer_to_water_, curr);
+                    curr = process_mapping(arg.water_to_light_, curr);
+                    curr = process_mapping(arg.light_to_temperature_, curr);
+                    curr = process_mapping(arg.temperature_to_humidity_, curr);
+                    curr = process_mapping(arg.humidity_to_location_, curr);
+                    if (curr < closest_location)
+                    {
+                        closest_location = curr;
+                    }
+                }
             }
-        }
-    }
-
-    for (auto s : seeds)
-    {
-        long long curr = s;
-        curr = process_mapping(arg.seed_to_soil_, curr);
-        curr = process_mapping(arg.soil_to_fertilizer_, curr);
-        curr = process_mapping(arg.fertilizer_to_water_, curr);
-        curr = process_mapping(arg.water_to_light_, curr);
-        curr = process_mapping(arg.light_to_temperature_, curr);
-        curr = process_mapping(arg.temperature_to_humidity_, curr);
-        curr = process_mapping(arg.humidity_to_location_, curr);
-        if (curr < closest_location)
-        {
-            closest_location = curr;
         }
     }
     return closest_location;
