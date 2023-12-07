@@ -102,13 +102,17 @@ public:
                 {
                     if (arg[i] == arg[j] || arg[j] == 11)
                     {
+                        if (arg[j] == 11)
+                        {
+                            j_used = true;
+                        }
+
                         matches += 1;
                     }
                 }
-                if (matches == 2)
+                if (matches == 3)
                 {
                     first_match = arg[i];
-                    j_used = true;
                 }
             }
             if (j_used)
@@ -173,13 +177,17 @@ public:
                 {
                     if (arg[i] == arg[j] || arg[j] == 11)
                     {
+                        if (arg[j] == 11)
+                        {
+                            j_used = true;
+                        }
+
                         matches += 1;
                     }
                 }
                 if (matches == 2)
                 {
                     first_match = arg[i];
-                    j_used = true;
                 }
             }
             if (j_used)
